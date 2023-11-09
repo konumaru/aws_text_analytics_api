@@ -1,11 +1,10 @@
-import json
 from uuid import uuid4
 
 import pytest
 
 
 class MockContext(object):
-    def __init__(self, function_name):
+    def __init__(self, function_name) -> None:
         self.function_name = function_name
         self.function_version = "v$LATEST"
         self.memory_limit_in_mb = 512
@@ -16,7 +15,7 @@ class MockContext(object):
 
 
 @pytest.fixture
-def lambda_context():
+def lambda_context() -> MockContext:
     return MockContext("dummy_function")
 
 

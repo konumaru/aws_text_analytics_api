@@ -1,6 +1,6 @@
 import json
 
-from lambda_function.text_classification.app import lambda_handler
+from lambda_function.text_processing.app import lambda_handler
 
 
 def test_hello_world() -> None:
