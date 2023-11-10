@@ -15,6 +15,8 @@ mangum = "^0.17.0"
 requests = "^2.31.0"
 boto3 = "^1.28.82"
 uvicorn = "^0.24.0.post1"
+gensim = "^4.3.2"
+fasttext = {git = "https://github.com/cfculhane/fastText", rev = "main"}
 
 
 [tool.poetry.group.dev.dependencies]

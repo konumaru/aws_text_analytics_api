@@ -1,26 +1,45 @@
-import json
-from io import BytesIO
+from typing import Dict, List
 
-# import boto3
-# import joblib
-# from sklearn.feature_extraction.text import TfidfVectorizer
+import fasttext
+import joblib
+from fastapi import FastAPI
+from mangum import Mangum
+from pydantic import BaseModel
+
+app = FastAPI()
+
+model = joblib.load("model.joblib")
+ft = fasttext.load_model("cc.en.300.bin")
 
 
-def lambda_handler(event, context):
-    # S3からモデルを読み込み
-    # s3 = boto3.client("s3")
-    # response = s3.get_object(
-    #     Bucket="my-text-classification-model",
-    #     Key="text_classification_model.joblib",
-    # )
-    # model = joblib.load(BytesIO(response["Body"].read()))
+def text_classify(text: str) -> int:
+    embedding = model.predict([text])[0]
+    return embedding
 
-    # リクエストからテキストデータを取得
-    text = event["text"]
 
-    # テキストデータの分類
-    # label = model.predict([text])[0]
-    label = "Hello world!"
+def text2embedding(text: str) -> List[float]:
+    vectors = ft.get_sentence_vector(text).tolist()
+    return vectors
 
-    # 結果を返す
-    return {"statusCode": 200, "body": json.dumps({"message": label})}
+
+class InputText(BaseModel):
+    text: str
+
+
+@app.post("/classification")
+async def classification(inputs: InputText) -> Dict[str, str]:
+    result = text_classify(inputs.text)
+    return {"classification": str(result)}
+
+
+@app.post("/embeddings")
+async def embeddings(inputs: InputText) -> Dict[str, List[float]]:
+    return {"embedding": text2embedding(inputs.text)}
+
+
+@app.get("/")
+async def root() -> Dict[str, str]:
+    return {"message": "Hello World!"}
+
+
+handler = Mangum(app)
