@@ -17,6 +17,7 @@ boto3 = "^1.28.82"
 uvicorn = "^0.24.0.post1"
 gensim = "^4.3.2"
 fasttext = {git = "https://github.com/cfculhane/fastText", rev = "main"}
+jupyterlab = "^4.0.8"
 
 
 [tool.poetry.group.dev.dependencies]

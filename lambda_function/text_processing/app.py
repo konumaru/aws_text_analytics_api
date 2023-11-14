@@ -22,19 +22,19 @@ def text2embedding(text: str) -> List[float]:
     return vectors
 
 
-class InputText(BaseModel):
+class TextInputs(BaseModel):
     text: str
 
 
 @app.post("/classification")
-async def classification(inputs: InputText) -> Dict[str, str]:
-    result = text_classify(inputs.text)
+async def classification(text_inputs: TextInputs) -> Dict[str, str]:
+    result = text_classify(text_inputs.text)
     return {"classification": str(result)}
 
 
 @app.post("/embeddings")
-async def embeddings(inputs: InputText) -> Dict[str, List[float]]:
-    return {"embedding": text2embedding(inputs.text)}
+async def embeddings(text_inputs: TextInputs) -> Dict[str, List[float]]:
+    return {"embedding": text2embedding(text_inputs.text)}
 
 
 @app.get("/")
