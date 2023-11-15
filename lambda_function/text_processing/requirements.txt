@@ -1,0 +1,5 @@
+fastapi
+mangum
+joblib
+fasttext-wheel
+scikit-learn

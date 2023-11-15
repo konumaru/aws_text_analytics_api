@@ -29,32 +29,39 @@ aws lambda create-function --function-name $LAMBDA_FUNCTION_NAME \
 # docker run -p 9000:8080 hello_world:latest
 # curl "http://localhost:9000/2015-03-31/functions/function/invocations" -d '{}'
 
-# Create API Gateway
-aws apigateway create-rest-api --name 'text-analytics-api' --region $AWS_DEFAULT_REGION
-# rest-api-id zwx7by9xre
-# root-resource-id chvutaiixb
+# # Create API Gateway
+aws apigateway create-resource \
+    --rest-api-id $AWS_API_GATEWAY_REST_API_ID \
+    --parent-id $AWS_API_GATEWAY_ROOT_RESOURCE_ID \
+    --path-part $LAMBDA_FUNCTION_NAME
 
-# NOTE: Lambda関数名とpath-partは同じにするとわかりやすい
-aws apigateway create-resource --rest-api-id zwx7by9xre --parent-id chvutaiixb --path-part 'hello-world'
-# resource-id 1mxmgh
+export RESOURCE_ID=$(
+    aws apigateway get-resources --rest-api-id $AWS_API_GATEWAY_REST_API_ID | \
+    jq -r ".items[] | select(.path == \"/${LAMBDA_FUNCTION_NAME}\") | .id"
+)
 
-aws apigateway put-method --rest-api-id zwx7by9xre --resource-id 1mxmgh --http-method ANY --authorization-type "NONE" 
+aws apigateway put-method \
+    --rest-api-id $AWS_API_GATEWAY_REST_API_ID \
+    --resource-id $RESOURCE_ID \
+    --http-method ANY \
+    --authorization-type "NONE"
 
+export LAMBDA_ARN=$(aws lambda get-function --function-name $LAMBDA_FUNCTION_NAME | jq -r '.Configuration.FunctionArn')
 aws apigateway put-integration \
-    --rest-api-id zwx7by9xre \
-    --resource-id 1mxmgh \
+    --rest-api-id $AWS_API_GATEWAY_REST_API_ID \
+    --resource-id $RESOURCE_ID \
     --http-method ANY \
     --type AWS_PROXY \
     --integration-http-method POST \
-    --uri 'arn:aws:apigateway:ap-northeast-1:lambda:path/2015-03-31/functions/arn:aws:lambda:ap-northeast-1:381519389246:function:hello-world/invocations'
+    --uri "arn:aws:apigateway:${AWS_DEFAULT_REGION}:lambda:path/2015-03-31/functions/${LAMBDA_ARN}/invocations"
 
 aws lambda add-permission \
     --function-name $LAMBDA_FUNCTION_NAME \
-    --statement-id 'apigateway-test-3' \
+    --statement-id 'apigateway-test' \
     --action 'lambda:InvokeFunction' \
     --principal apigateway.amazonaws.com \
-    --source-arn 'arn:aws:execute-api:ap-northeast-1:381519389246:zwx7by9xre/*/*/hello-world'
+    --source-arn "arn:aws:execute-api:${AWS_DEFAULT_REGION}:${AWS_ACCOUNT_ID}:${AWS_API_GATEWAY_REST_API_ID}/*/*/${LAMBDA_FUNCTION_NAME}"
 
 aws apigateway create-deployment \
-    --rest-api-id zwx7by9xre \
+    --rest-api-id $AWS_API_GATEWAY_REST_API_ID \
     --stage-name 'prod'

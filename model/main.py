@@ -1,12 +1,18 @@
 import pathlib
+import pickle
+from typing import Any
 
-import joblib
 from sklearn.datasets import fetch_20newsgroups
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import make_pipeline
+
+
+def save_model(model: Any, path: str | pathlib.Path) -> None:
+    with open(path, "wb") as f:
+        pickle.dump(model, f)
 
 
 def main() -> None:
@@ -28,7 +34,7 @@ def main() -> None:
     # Save model
     save_dir = pathlib.Path(__file__).parent / "../data/model"
     save_dir.mkdir(exist_ok=True, parents=True)
-    joblib.dump(model, save_dir / "20newsgroups.joblib")
+    save_model(model, save_dir / "20newsgroups.pkl")
 
 
 if __name__ == "__main__":
