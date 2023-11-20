@@ -1,0 +1,8 @@
+export AWS_DEFAULT_REGION=
+export AWS_ACCOUNT_ID=
+export AWS_ACCESS_KEY_ID=
+export AWS_SECRET_ACCESS_KEY=
+
+# aws apigateway get-rest-apis
+export AWS_API_GATEWAY_ROOT_RESOURCE_ID=
+export AWS_API_GATEWAY_REST_API_ID=
