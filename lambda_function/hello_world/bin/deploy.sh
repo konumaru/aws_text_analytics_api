@@ -10,6 +10,29 @@ export LAMBDA_EXECUTION_ROLE=$(aws iam get-role --role-name LambdaExecutionRole 
 export AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query 'Account' --output text)
 export AWS_DEFAULT_REGION=$(echo $AWS_DEFAULT_REGION)
 
+clean_existing_resources() {
+    echo "Cleaning existing resources..."
+    function_name="$1"
+    if aws lambda get-function --function-name $function_name 2>&1 | grep -q 'Function not found'; then
+        echo "Not existing Lambda function $function_name..."
+    else
+        # 存在する場合は削除
+        echo "Deleting Lambda function $function_name..."
+        aws lambda delete-function --function-name $function_name
+
+        if [ $? -eq 0 ]; then
+            echo "Complete to delete Lambda function $function_name."
+        else
+            echo "Failed to delete Lambda function $function_name."
+        fi
+    fi
+
+    aws ecr delete-repository --repository-name $function_name --force
+}
+
+
+clean_existing_resources $LAMBDA_FUNCTION_NAME
+
 # Build docker image
 sudo docker build -t $LAMBDA_FUNCTION_NAME:latest .
 
