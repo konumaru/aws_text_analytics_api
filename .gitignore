@@ -161,5 +161,7 @@ cython_debug/
 
 .envrc
 */**/*.bin
+*/**/*.txt
 */**/*.pkl
+*/**/*.pickle
 */**/*.joblib

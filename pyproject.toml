@@ -18,6 +18,7 @@ uvicorn = "^0.24.0.post1"
 gensim = "^4.3.2"
 fasttext = {git = "https://github.com/cfculhane/fastText", rev = "main"}
 jupyterlab = "^4.0.8"
+nltk = "^3.8.1"
 
 
 [tool.poetry.group.dev.dependencies]
@@ -31,3 +32,39 @@ mypy = "^1.6.1"
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+
+[tool.flake8]
+max-line-length = 79
+extend-ignore = "E203,W503,F401,F841,W605"
+
+
+[tool.black]
+target-version = ["py39", "py310", "py311"]
+line-length = 79
+exclude = '''
+/(
+    \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+)/
+'''
+
+
+[tool.isort]
+profile = "black"
+line_length = 79
+include_trailing_comma = true
+
+
+[tool.mypy]
+no_strict_optional = true
+ignore_missing_imports = true
+check_untyped_defs = true
