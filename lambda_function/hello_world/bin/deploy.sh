@@ -65,3 +65,6 @@ aws lambda add-permission \
 aws apigateway create-deployment \
     --rest-api-id $AWS_API_GATEWAY_REST_API_ID \
     --stage-name 'prod'
+
+# Check API Gateway endpoint
+curl https://${AWS_API_GATEWAY_RESOURCE_ID}.execute-api.ap-northeast-1.amazonaws.com/prod/${LAMBDA_FUNCTION_NAME}

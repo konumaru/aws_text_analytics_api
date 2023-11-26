@@ -2,7 +2,9 @@ FROM public.ecr.aws/lambda/python:3.10
 
 # Copy requirements.txt
 COPY requirements.txt ./
-COPY ./data ${LAMBDA_TASK_ROOT}/data
+COPY data ${LAMBDA_TASK_ROOT}/data
+COPY tokenizers ${LAMBDA_TASK_ROOT}/tokenizers
+COPY lib ${LAMBDA_TASK_ROOT}/lib
 
 # Copy function code
 COPY app.py ${LAMBDA_TASK_ROOT}

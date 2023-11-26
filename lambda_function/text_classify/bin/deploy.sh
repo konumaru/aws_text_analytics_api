@@ -10,14 +10,21 @@ export LAMBDA_EXECUTION_ROLE=$(aws iam get-role --role-name LambdaExecutionRole 
 export AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query 'Account' --output text)
 export AWS_DEFAULT_REGION=$(echo $AWS_DEFAULT_REGION)
 
+
 preprocess() {
     echo "Preprocessing..."
-    cp -r ../../data ./data
+    mkdir -p data
+    mkdir -p tokenizers/punkt/PY3
+    cp ../../data/model/20newsgroups.pkl data/20newsgroups.pkl
+    cp ../../data/tokenizers/punkt/english.pickle tokenizers/punkt/PY3/english.pickle
+    cp -r ../../lib .
 }
 
 postprocess() {
     echo "Postprocessing..."
     rm -rf ./data
+    rm -rf ./tokenizers
+    rm -rf ./lib
 }
 
 clean_existing_resources() {
@@ -41,11 +48,11 @@ clean_existing_resources() {
 }
 
 
-# preprocess
+preprocess
 clean_existing_resources $LAMBDA_FUNCTION_NAME
 
 # Build docker image
-sudo docker build --no-cache -t $LAMBDA_FUNCTION_NAME:latest .
+sudo docker build -t $LAMBDA_FUNCTION_NAME:latest .
 
 aws ecr describe-repositories --repository-names $LAMBDA_FUNCTION_NAME || aws ecr create-repository --repository-name $LAMBDA_FUNCTION_NAME
 aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
@@ -57,43 +64,51 @@ aws lambda create-function --function-name $LAMBDA_FUNCTION_NAME \
     --code ImageUri=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$LAMBDA_FUNCTION_NAME:latest \
     --role $LAMBDA_EXECUTION_ROLE \
     --architectures arm64 \
-    --memory-size 1024 --timeout 120
+    --memory-size 512 --timeout 60
 
 # Local test
-# docker run -p 9000:8080 hello_world:latest
-# curl "http://localhost:9000/2015-03-31/functions/function/invocations" -d '{}'
-# curl -XPOST "http://localhost:9000/2015-03-31/functions/function/invocations" -d '{"payload":"hello world!"}'
+# docker run -p 9000:8080 text-classify:latest
+# curl "http://localhost:9000/2015-03-31/functions/function/invocations" -d '{"input_text": "Hello World!"}'
 
-# # NOTE: Lambda関数名とpath-partは同じにするとわかりやすい
-# aws apigateway create-resource --rest-api-id zwx7by9xre --parent-id chvutaiixb --path-part 'hello-world'
-# # resource-id 1mxmgh
-
-
-# Create API Gateway endpoint
+# # Create API Gateway
 aws apigateway create-resource \
     --rest-api-id $AWS_API_GATEWAY_REST_API_ID \
-    --parent-id $AWS_API_GATEWAY_RESOURCE_ID \
+    --parent-id $AWS_API_GATEWAY_ROOT_RESOURCE_ID \
     --path-part $LAMBDA_FUNCTION_NAME
 
-# aws apigateway put-method --rest-api-id zwx7by9xre --resource-id 1mxmgh --http-method ANY --authorization-type "NONE" 
+export RESOURCE_ID=$(
+    aws apigateway get-resources --rest-api-id $AWS_API_GATEWAY_REST_API_ID | \
+    jq -r ".items[] | select(.path == \"/${LAMBDA_FUNCTION_NAME}\") | .id"
+)
 
-# aws apigateway put-integration \
-#     --rest-api-id zwx7by9xre \
-#     --resource-id 1mxmgh \
-#     --http-method ANY \
-#     --type AWS_PROXY \
-#     --integration-http-method POST \
-#     --uri 'arn:aws:apigateway:ap-northeast-1:lambda:path/2015-03-31/functions/arn:aws:lambda:ap-northeast-1:381519389246:function:hello-world/invocations'
+aws apigateway put-method \
+    --rest-api-id $AWS_API_GATEWAY_REST_API_ID \
+    --resource-id $RESOURCE_ID \
+    --http-method POST \
+    --authorization-type "NONE" \
+    --request-parameters "method.request.querystring.input_text=true"
 
-# aws lambda add-permission \
-#     --function-name $LAMBDA_FUNCTION_NAME \
-#     --statement-id 'apigateway-test-3' \
-#     --action 'lambda:InvokeFunction' \
-#     --principal apigateway.amazonaws.com \
-#     --source-arn 'arn:aws:execute-api:ap-northeast-1:381519389246:zwx7by9xre/*/*/hello-world'
+export LAMBDA_ARN=$(aws lambda get-function --function-name $LAMBDA_FUNCTION_NAME | jq -r '.Configuration.FunctionArn')
+aws apigateway put-integration \
+    --rest-api-id $AWS_API_GATEWAY_REST_API_ID \
+    --resource-id $RESOURCE_ID \
+    --http-method POST \
+    --type AWS_PROXY \
+    --uri "arn:aws:apigateway:${AWS_DEFAULT_REGION}:lambda:path/2015-03-31/functions/${LAMBDA_ARN}/invocations" \
+    --integration-http-method POST 
 
-# aws apigateway create-deployment \
-#     --rest-api-id zwx7by9xre \
-#     --stage-name 'prod'
+aws lambda add-permission \
+    --function-name $LAMBDA_FUNCTION_NAME \
+    --statement-id 'apigateway-test' \
+    --action 'lambda:InvokeFunction' \
+    --principal apigateway.amazonaws.com \
+    --source-arn "arn:aws:execute-api:${AWS_DEFAULT_REGION}:${AWS_ACCOUNT_ID}:${AWS_API_GATEWAY_REST_API_ID}/*/*/${LAMBDA_FUNCTION_NAME}"
 
-# postprocess
+aws apigateway create-deployment \
+    --rest-api-id $AWS_API_GATEWAY_REST_API_ID \
+    --stage-name 'prod'
+
+# Check API Gateway endpoint
+# curl https://${AWS_API_GATEWAY_REST_API_ID}.execute-api.ap-northeast-1.amazonaws.com/prod/${LAMBDA_FUNCTION_NAME}
+
+postprocess
