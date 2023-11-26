@@ -3,11 +3,13 @@ import pickle
 from typing import Any
 
 from sklearn.datasets import fetch_20newsgroups
-from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
+
+from lib.preprocessing import Text2VecTransformer
 
 
 def save_model(model: Any, path: str | pathlib.Path) -> None:
@@ -24,7 +26,15 @@ def main() -> None:
     )
 
     # Train model
-    pipeline = make_pipeline(TfidfVectorizer(), LogisticRegression())
+    tokenizer_path = "data/tokenizers/punkt/english.pickle"
+    glove_path = (
+        "data/wv_models/gensim/glove.twitter.27B/glove.twitter.27B.25d.txt"
+    )
+    pipeline = make_pipeline(
+        Text2VecTransformer(tokenizer_path, glove_path),
+        StandardScaler(),
+        LogisticRegression(solver="liblinear", C=0.1, random_state=42),
+    )
     model = pipeline.fit(X_train, y_train)
 
     # Evaluate model

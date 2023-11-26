@@ -5,6 +5,8 @@ description = ""
 authors = ["konumaru <konumaru1022@gmail.com>"]
 license = "MIT"
 readme = "README.md"
+packages = [{include = "lib"}]
+
 
 [tool.poetry.dependencies]
 python = "^3.10"
